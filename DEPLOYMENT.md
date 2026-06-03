@@ -35,8 +35,9 @@ On the Vercel project configuration page, add these environment variables:
 DATABASE_URL=postgresql://user:password@host/dbname
 NEXTAUTH_SECRET=<generate-new-secret>
 NEXTAUTH_URL=https://your-domain.vercel.app
-NODE_ENV=production
 ```
+
+Do not set `NODE_ENV` manually in Vercel. Vercel sets production mode automatically, and copying `NODE_ENV=development` from `.env.local` can make the live deployment behave like a local app.
 
 **To generate NEXTAUTH_SECRET:**
 ```bash
@@ -70,6 +71,7 @@ Use a PostgreSQL client to run the migration scripts from `scripts/migrate.js`.
 2. Test login with demo credentials:
    - Admin: admin@example.com / demo123
    - Seller: seller@example.com / demo123
+   - Buyer: buyer@example.com / demo123
 3. Try the core flows:
    - Create a product (as admin)
    - Browse products (as seller)

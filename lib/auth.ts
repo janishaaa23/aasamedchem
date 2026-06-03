@@ -1,24 +1,53 @@
-import NextAuth, { getServerSession } from 'next-auth'
+import NextAuth, { AuthOptions, DefaultSession, getServerSession } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { getClient } from './db/client'
+
+if (!process.env.NEXTAUTH_URL && process.env.VERCEL_URL) {
+  process.env.NEXTAUTH_URL = `https://${process.env.VERCEL_URL}`
+}
+
+const demoUsers = {
+  admin: {
+    id: '11111111-1111-4111-8111-111111111111',
+    email: 'admin@example.com',
+    name: 'AasaMedChem Admin',
+    role: 'admin' as const,
+  },
+  seller: {
+    id: '22222222-2222-4222-8222-222222222222',
+    email: 'seller@example.com',
+    name: 'Demo Seller',
+    role: 'seller' as const,
+  },
+  buyer: {
+    id: '33333333-3333-4333-8333-333333333333',
+    email: 'buyer@example.com',
+    name: 'Demo Buyer',
+    role: 'buyer' as const,
+  },
+}
 
 declare module 'next-auth' {
   interface Session {
     user: {
       id: string
-      email: string
-      name: string
       role: 'admin' | 'seller' | 'buyer'
-    }
+    } & DefaultSession['user']
   }
 
+  interface User {
+    role: 'admin' | 'seller' | 'buyer'
+  }
+}
+
+declare module 'next-auth/jwt' {
   interface JWT {
     id: string
     role: 'admin' | 'seller' | 'buyer'
   }
 }
 
-const authOptions = {
+const authOptions: AuthOptions = {
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -46,17 +75,17 @@ console.log("USER FOUND:", user)
 
           if (!user || user.length === 0) {
             // Fallback for demo users when DB has no records
-            if (credentials.email === 'admin@example.com' && credentials.password === 'demo123') {
+            if (credentials.email === demoUsers.admin.email && credentials.password === 'demo123') {
               console.log('Auth fallback: returning demo admin (no DB user)')
-              return { id: 'demo-admin', email: 'admin@example.com', name: 'Admin User', role: 'admin' }
+              return demoUsers.admin
             }
-            if (credentials.email === 'seller@example.com' && credentials.password === 'demo123') {
+            if (credentials.email === demoUsers.seller.email && credentials.password === 'demo123') {
               console.log('Auth fallback: returning demo seller (no DB user)')
-              return { id: '438a3e7f-6e82-4897-a621-80f2055c6f4f', email: 'seller@example.com', name: 'Test Seller', role: 'seller' }
+              return demoUsers.seller
             }
-            if (credentials.email === 'buyer@example.com' && credentials.password === 'demo123') {
+            if (credentials.email === demoUsers.buyer.email && credentials.password === 'demo123') {
               console.log('Auth fallback: returning demo buyer (no DB user)')
-              return { id: 'f59fa6ee-d589-497e-aa9e-d02469501d42', email: 'buyer@example.com', name: 'Demo Buyer', role: 'buyer' }
+              return demoUsers.buyer
             }
             return null
           }
@@ -77,17 +106,17 @@ console.log("USER FOUND:", user)
         } catch (error) {
           console.error('Auth error:', error)
           // If DB is unreachable or authentication fails at DB level, allow demo credentials for local dev
-          if (credentials.email === 'admin@example.com' && credentials.password === 'demo123') {
+          if (credentials.email === demoUsers.admin.email && credentials.password === 'demo123') {
             console.log('Auth fallback: returning demo admin (DB error)')
-            return { id: 'demo-admin', email: 'admin@example.com', name: 'Admin User', role: 'admin' }
+            return demoUsers.admin
           }
-          if (credentials.email === 'seller@example.com' && credentials.password === 'demo123') {
+          if (credentials.email === demoUsers.seller.email && credentials.password === 'demo123') {
             console.log('Auth fallback: returning demo seller (DB error)')
-            return { id: 'demo-seller', email: 'seller@example.com', name: 'Test Seller', role: 'seller' }
+            return demoUsers.seller
           }
-          if (credentials.email === 'buyer@example.com' && credentials.password === 'demo123') {
+          if (credentials.email === demoUsers.buyer.email && credentials.password === 'demo123') {
             console.log('Auth fallback: returning demo buyer (DB error)')
-            return { id: 'demo-buyer', email: 'buyer@example.com', name: 'Demo Buyer', role: 'buyer' }
+            return demoUsers.buyer
           }
           return null
         }
@@ -105,7 +134,7 @@ console.log("USER FOUND:", user)
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string
-        session.user.role = token.role
+        session.user.role = token.role as 'admin' | 'seller' | 'buyer'
       }
       return session
     },

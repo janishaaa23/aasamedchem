@@ -5,7 +5,6 @@
 
 require('dotenv').config({ path: '.env.local' })
 const postgres = require('postgres')
-const crypto = require('crypto')
 
 async function seed() {
   const connectionString = process.env.DATABASE_URL
@@ -21,16 +20,16 @@ async function seed() {
     console.log('Starting database seed...')
 
     // Create admin, seller, and buyer users
-    const adminId = crypto.randomUUID()
-    const sellerId = crypto.randomUUID()
-    const buyerId = crypto.randomUUID()
+    const adminId = '11111111-1111-4111-8111-111111111111'
+    const sellerId = '22222222-2222-4222-8222-222222222222'
+    const buyerId = '33333333-3333-4333-8333-333333333333'
 
     await sql`
       INSERT INTO users (id, email, password_hash, name, role)
       VALUES 
         (${adminId}, 'admin@example.com', 'demo123', 'AasaMedChem Admin', 'admin'),
-        (${sellerId}, 'garnier@example.com', 'demo123', 'Garnier Brand', 'seller'),
-        (${buyerId}, 'myntra.customer@example.com', 'demo123', 'Myntra Shopper', 'buyer')
+        (${sellerId}, 'seller@example.com', 'demo123', 'Demo Seller', 'seller'),
+        (${buyerId}, 'buyer@example.com', 'demo123', 'Demo Buyer', 'buyer')
       ON CONFLICT (email) DO NOTHING
     `
     console.log('✓ Created demo users')
@@ -106,8 +105,8 @@ async function seed() {
     console.log('\n✓ Database seed completed successfully!')
     console.log('\nDemo Users:')
     console.log('  Admin: admin@example.com / demo123  (AasaMedChem Admin)')
-    console.log('  Seller: garnier@example.com / demo123  (Garnier Brand)')
-    console.log('  Buyer: myntra.customer@example.com / demo123  (Myntra Shopper)')
+    console.log('  Seller: seller@example.com / demo123  (Demo Seller)')
+    console.log('  Buyer: buyer@example.com / demo123  (Demo Buyer)')
   } catch (error) {
     console.error('ERROR during seed:', error)
     process.exit(1)
