@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { formatINR } from '@/lib/utils/units'
+import { formatINR } from '../../../lib/utils/units'
 
 interface OrderItem {
   id: string
