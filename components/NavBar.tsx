@@ -20,7 +20,8 @@ export default function NavBar() {
   }
 
   const isAdmin = session.user.role === 'admin'
-  const dashboardUrl = isAdmin ? '/admin' : '/seller'
+  const isSeller = session.user.role === 'seller'
+  const dashboardUrl = isAdmin ? '/admin' : isSeller ? '/seller' : '/buyer'
 
   return (
     <nav className="bg-white border-b border-gray-200 shadow-sm">
@@ -45,7 +46,7 @@ export default function NavBar() {
                   Orders
                 </Link>
               </>
-            ) : (
+            ) : isSeller ? (
               <>
                 <Link href="/seller" className="text-gray-700 hover:text-blue-600 transition">
                   Dashboard
@@ -57,6 +58,18 @@ export default function NavBar() {
                   My Orders
                 </Link>
               </>
+            ) : (
+              <>
+                <Link href="/buyer" className="text-gray-700 hover:text-blue-600 transition">
+                  Dashboard
+                </Link>
+                <Link href="/buyer/products" className="text-gray-700 hover:text-blue-600 transition">
+                  Products
+                </Link>
+                <Link href="/buyer/orders" className="text-gray-700 hover:text-blue-600 transition">
+                  My Orders
+                </Link>
+              </>
             )}
           </div>
 
@@ -65,7 +78,11 @@ export default function NavBar() {
             <div className="text-sm">
               <p className="font-medium text-gray-900">{session.user.name}</p>
               <p className="text-gray-600">
-                {session.user.role === 'admin' ? 'Administrator' : 'Seller'}
+                {session.user.role === 'admin'
+                  ? 'Administrator'
+                  : session.user.role === 'seller'
+                    ? 'Seller'
+                    : 'Buyer'}
               </p>
             </div>
 

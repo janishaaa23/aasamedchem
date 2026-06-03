@@ -82,6 +82,9 @@ export default function LoginPage() {
               <strong>Seller:</strong> seller@example.com
             </p>
             <p>
+              <strong>Buyer:</strong> buyer@example.com
+            </p>
+            <p>
               <strong>Password:</strong> demo123
             </p>
           </div>

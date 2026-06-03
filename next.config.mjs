@@ -1,0 +1,8 @@
+const nextConfig = {
+  reactStrictMode: true,
+  swcMinify: true,
+  compress: true,
+  poweredByHeader: false,
+};
+
+export default nextConfig;

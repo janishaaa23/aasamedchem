@@ -24,18 +24,28 @@ export async function GET(request: NextRequest) {
     if (session.user.role === 'admin') {
       // Admin sees all orders
       orders = await client`
-        SELECT id, order_number, seller_id, status, total_price_inr, notes,
+        SELECT id, order_number, seller_id, buyer_id, status, total_price_inr, notes,
                created_at, updated_at
         FROM orders
         ORDER BY created_at DESC
       `
-    } else {
-      // Sellers see only their orders
+    } else if (session.user.role === 'seller') {
+      // Sellers see only their own seller orders
+      console.log("SELLER SESSION:", session.user)
       orders = await client`
-        SELECT id, order_number, seller_id, status, total_price_inr, notes,
+        SELECT id, order_number, seller_id, buyer_id, status, total_price_inr, notes,
                created_at, updated_at
         FROM orders
         WHERE seller_id = ${session.user.id}
+        ORDER BY created_at DESC
+      `
+    } else {
+      // Buyers see only their own orders
+      orders = await client`
+        SELECT id, order_number, seller_id, buyer_id, status, total_price_inr, notes,
+               created_at, updated_at
+        FROM orders
+        WHERE buyer_id = ${session.user.id}
         ORDER BY created_at DESC
       `
     }
@@ -98,7 +108,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/orders - Create a new order (sellers only)
+// POST /api/orders - Create a new order (buyers only)
 export async function POST(request: NextRequest) {
   try {
     const session = await auth()
@@ -110,9 +120,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (session.user.role !== 'seller') {
+    if (session.user.role !== 'buyer') {
       return NextResponse.json(
-        { success: false, error: 'Forbidden: Sellers only' } as ApiResponse<null>,
+        { success: false, error: 'Forbidden: Buyers only' } as ApiResponse<null>,
         { status: 403 }
       )
     }
@@ -128,11 +138,15 @@ export async function POST(request: NextRequest) {
 
     const client = getClient()
 
+console.log("==== ORDER DEBUG ====")
+console.log("session.user =", session.user)
+
     // Generate order number
     const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
     // Calculate total price
     let totalPrice = new Decimal(0)
+    let sellerId: string | null = null
 
     for (const item of body.items) {
       const product = await client`SELECT * FROM products WHERE id = ${item.product_id}`
@@ -144,6 +158,15 @@ export async function POST(request: NextRequest) {
       }
 
       const prod = product[0]
+      if (!sellerId) {
+        sellerId = prod.seller_id || null
+      } else if (prod.seller_id !== sellerId) {
+        return NextResponse.json(
+          { success: false, error: 'All items in an order must belong to the same seller' } as ApiResponse<null>,
+          { status: 400 }
+        )
+      }
+
       const quantityInBase = convertToBaseUnit(
         item.quantity_requested,
         item.unit_chosen,
@@ -153,12 +176,14 @@ export async function POST(request: NextRequest) {
       const itemPrice = calculatePrice(quantityInBase, prod.base_price_inr)
       totalPrice = totalPrice.plus(itemPrice)
     }
-
+console.log("sellerId =", sellerId)
+console.log("buyerId =", session.user.id)
+console.log("totalPrice =", totalPrice.toString())
     // Create order
     const order = await client`
-      INSERT INTO orders (order_number, seller_id, total_price_inr, notes)
-      VALUES (${orderNumber}, ${session.user.id}, ${totalPrice.toString()}, ${body.notes || null})
-      RETURNING id, order_number, seller_id, status, total_price_inr, notes, created_at, updated_at
+      INSERT INTO orders (order_number, seller_id, buyer_id, total_price_inr, notes)
+      VALUES (${orderNumber}, ${sellerId}, ${session.user.id}, ${totalPrice.toString()}, ${body.notes || null})
+      RETURNING id, order_number, seller_id, buyer_id, status, total_price_inr, notes, created_at, updated_at
     `
 
     const orderId = order[0].id

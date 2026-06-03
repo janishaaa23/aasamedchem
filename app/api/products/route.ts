@@ -4,21 +4,35 @@ import { Product, CreateProductRequest, ApiResponse } from '@/lib/types'
 import { NextRequest, NextResponse } from 'next/server'
 
 // GET /api/products - List all products
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
+    const session = await auth()
     const client = getClient()
-    const products = await client`
-      SELECT 
-        id, sku, name, description, category, 
-        unit_dimension, quantity_in_base_unit, base_price_inr,
-        available_units, created_at, updated_at
-      FROM products
-      ORDER BY name ASC
-    `
+
+    let products
+
+    if (session?.user?.role === 'seller') {
+      products = await client`
+        SELECT id, sku, name, description, category,
+               unit_dimension, quantity_in_base_unit, base_price_inr,
+               available_units, seller_id, created_at, updated_at
+        FROM products
+        WHERE seller_id = ${session.user.id}
+        ORDER BY name ASC
+      `
+    } else {
+      products = await client`
+        SELECT id, sku, name, description, category,
+               unit_dimension, quantity_in_base_unit, base_price_inr,
+               available_units, seller_id, created_at, updated_at
+        FROM products
+        ORDER BY name ASC
+      `
+    }
 
     return NextResponse.json({
       success: true,
-      data: products,
+      data: products as unknown as Product[],
     } as ApiResponse<Product[]>)
   } catch (error) {
     console.error('Error fetching products:', error)
@@ -32,7 +46,13 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/products - Create a new product (admin only)
+// POST /api/products - Create a new product (admin or seller)
+const availableUnitsMap: Record<'weight' | 'volume' | 'count', string[]> = {
+  weight: ['g', 'kg'],
+  volume: ['mL', 'L'],
+  count: ['item'],
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await auth()
@@ -45,45 +65,63 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if user is admin
-    if (session.user.role !== 'admin') {
+    // Only admin or seller may create products
+    if (session.user.role !== 'admin' && session.user.role !== 'seller') {
       return NextResponse.json(
-        { success: false, error: 'Forbidden: Admin access required' } as ApiResponse<null>,
+        { success: false, error: 'Forbidden: Admin or Seller access required' } as ApiResponse<null>,
         { status: 403 }
       )
     }
 
     const body = (await request.json()) as CreateProductRequest
+    const quantityInBaseUnit =
+      typeof body.quantity_in_base_unit === 'string'
+        ? parseFloat(body.quantity_in_base_unit)
+        : body.quantity_in_base_unit
+    const basePriceInr =
+      typeof body.base_price_inr === 'string'
+        ? parseFloat(body.base_price_inr)
+        : body.base_price_inr
+
+    if (!body.unit_dimension || !availableUnitsMap[body.unit_dimension]) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid unit_dimension. Accepted values: weight, volume, count' } as ApiResponse<null>,
+        { status: 400 }
+      )
+    }
 
     // Validate input
     if (
       !body.sku ||
       !body.name ||
-      !body.unit_dimension ||
-      body.base_price_inr === undefined
+      quantityInBaseUnit === undefined ||
+      Number.isNaN(quantityInBaseUnit) ||
+      Number.isNaN(basePriceInr)
     ) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields' } as ApiResponse<null>,
+        { success: false, error: 'Missing or invalid required fields' } as ApiResponse<null>,
         { status: 400 }
       )
     }
 
+    const availableUnits = availableUnitsMap[body.unit_dimension]
     const client = getClient()
     const result = await client`
       INSERT INTO products (
-        sku, name, description, category, unit_dimension,
+        sku, name, description, category, seller_id, unit_dimension,
         quantity_in_base_unit, base_price_inr, available_units
       ) VALUES (
         ${body.sku},
         ${body.name},
         ${body.description || null},
         ${body.category || null},
+        ${session.user.role === 'seller' ? session.user.id : null},
         ${body.unit_dimension},
-        ${body.quantity_in_base_unit || 0},
-        ${body.base_price_inr},
-        ${{ weight: ['g', 'kg'], volume: ['mL', 'L'], count: ['item'] }[body.unit_dimension]}
+        ${quantityInBaseUnit},
+        ${basePriceInr},
+        ${JSON.stringify(availableUnits)}::jsonb
       )
-      RETURNING id, sku, name, description, category, unit_dimension, 
+      RETURNING id, sku, name, description, category, seller_id, unit_dimension, 
                 quantity_in_base_unit, base_price_inr, available_units,
                 created_at, updated_at
     `
@@ -94,8 +132,9 @@ export async function POST(request: NextRequest) {
     )
   } catch (error) {
     console.error('Error creating product:', error)
+    const message = error instanceof Error ? error.message : 'Failed to create product'
     return NextResponse.json(
-      { success: false, error: 'Failed to create product' } as ApiResponse<null>,
+      { success: false, error: message } as ApiResponse<null>,
       { status: 500 }
     )
   }

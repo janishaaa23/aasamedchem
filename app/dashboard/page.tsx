@@ -10,7 +10,9 @@ export default async function DashboardPage() {
 
   if (session.user.role === 'admin') {
     redirect('/admin')
-  } else {
+  } else if (session.user.role === 'seller') {
     redirect('/seller')
+  } else {
+    redirect('/buyer')
   }
 }

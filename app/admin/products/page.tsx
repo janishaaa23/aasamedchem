@@ -39,7 +39,11 @@ export default function AdminProductsPage() {
 
   async function fetchProducts() {
     try {
-      const response = await fetch('/api/products')
+      const response = await fetch('/api/products', {
+        method: 'GET',
+        cache: 'no-store',
+        credentials: 'include',
+      })
       const data = await response.json()
       if (data.success) {
         setProducts(data.data || [])
@@ -58,15 +62,39 @@ export default function AdminProductsPage() {
     setError('')
     setSubmitting(true)
 
+    const payload = {
+      ...formData,
+      quantity_in_base_unit: Number(formData.quantity_in_base_unit),
+      base_price_inr: Number(formData.base_price_inr),
+    }
+
+    if (
+      Number.isNaN(payload.quantity_in_base_unit) ||
+      Number.isNaN(payload.base_price_inr)
+    ) {
+      setError('Quantity and base price must be valid numbers')
+      setSubmitting(false)
+      return
+    }
+
     try {
       const response = await fetch('/api/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        credentials: 'include',
+        body: JSON.stringify(payload),
       })
 
-      const data = await response.json()
-      if (data.success) {
+      const responseText = await response.text()
+      let data
+      try {
+        data = JSON.parse(responseText)
+      } catch {
+        setError(`Server error: ${response.status} ${response.statusText} - ${responseText}`)
+        return
+      }
+
+      if (response.ok && data.success) {
         setProducts([...products, data.data])
         setFormData({
           sku: '',
@@ -80,10 +108,10 @@ export default function AdminProductsPage() {
         setShowForm(false)
         alert('Product created successfully!')
       } else {
-        setError(data.error || 'Failed to create product')
+        setError(data.error || `Failed to create product (${response.status})`)
       }
     } catch (err) {
-      setError('Error creating product')
+      setError(err instanceof Error ? err.message : 'Error creating product')
     } finally {
       setSubmitting(false)
     }

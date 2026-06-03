@@ -41,7 +41,11 @@ export default function AdminOrdersPage() {
 
   async function fetchOrders() {
     try {
-      const response = await fetch('/api/orders')
+      const response = await fetch('/api/orders', {
+        method: 'GET',
+        cache: 'no-store',
+        credentials: 'include',
+      })
       const data = await response.json()
       if (data.success) {
         setOrders(data.data || [])
@@ -60,6 +64,7 @@ export default function AdminOrdersPage() {
       const response = await fetch(`/api/orders/${orderId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ status: newStatus }),
       })
 

@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 * {
-  @apply border-border;
+  box-sizing: border-box;
 }
 
 html {

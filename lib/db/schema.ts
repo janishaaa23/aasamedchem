@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(255) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   name VARCHAR(255) NOT NULL,
-  role VARCHAR(50) NOT NULL CHECK (role IN ('admin', 'seller')),
+  role VARCHAR(50) NOT NULL CHECK (role IN ('admin', 'seller', 'buyer')),
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS products (
   name VARCHAR(255) NOT NULL,
   description TEXT,
   category VARCHAR(100),
+  seller_id UUID REFERENCES users(id),
   
   -- Unit dimension: 'weight', 'volume', or 'count'
   unit_dimension VARCHAR(20) NOT NULL CHECK (unit_dimension IN ('weight', 'volume', 'count')),
@@ -66,8 +67,11 @@ CREATE TABLE IF NOT EXISTS orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   order_number VARCHAR(50) NOT NULL UNIQUE,
   
-  -- Reference to the seller who placed the order
-  seller_id UUID NOT NULL REFERENCES users(id),
+  -- Reference to the seller fulfilling the order
+  seller_id UUID REFERENCES users(id),
+  
+  -- The buyer placing the order
+  buyer_id UUID REFERENCES users(id),
   
   -- Order status: 'quotation' or 'confirmed'
   status VARCHAR(50) NOT NULL DEFAULT 'quotation' CHECK (status IN ('quotation', 'confirmed', 'rejected', 'completed')),

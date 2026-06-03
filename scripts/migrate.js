@@ -3,6 +3,7 @@
  * Run this to initialize the database schema
  */
 
+require('dotenv').config({ path: '.env.local' })
 const postgres = require('postgres')
 
 async function migrate() {
@@ -25,7 +26,7 @@ async function migrate() {
         email VARCHAR(255) NOT NULL UNIQUE,
         password_hash VARCHAR(255) NOT NULL,
         name VARCHAR(255) NOT NULL,
-        role VARCHAR(50) NOT NULL CHECK (role IN ('admin', 'seller')),
+        role VARCHAR(50) NOT NULL CHECK (role IN ('admin', 'seller', 'buyer')),
         is_active BOOLEAN DEFAULT true,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -41,6 +42,7 @@ async function migrate() {
         name VARCHAR(255) NOT NULL,
         description TEXT,
         category VARCHAR(100),
+        seller_id UUID REFERENCES users(id),
         unit_dimension VARCHAR(20) NOT NULL CHECK (unit_dimension IN ('weight', 'volume', 'count')),
         quantity_in_base_unit NUMERIC(18, 6) NOT NULL DEFAULT 0,
         base_price_inr NUMERIC(12, 4) NOT NULL,
@@ -57,6 +59,7 @@ async function migrate() {
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         order_number VARCHAR(50) NOT NULL UNIQUE,
         seller_id UUID NOT NULL REFERENCES users(id),
+        buyer_id UUID REFERENCES users(id),
         status VARCHAR(50) NOT NULL DEFAULT 'quotation' CHECK (status IN ('quotation', 'confirmed', 'rejected', 'completed')),
         total_price_inr NUMERIC(12, 4) NOT NULL,
         notes TEXT,

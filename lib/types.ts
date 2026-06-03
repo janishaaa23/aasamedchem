@@ -2,7 +2,7 @@
  * Type definitions for database models and API responses
  */
 
-export type UserRole = 'admin' | 'seller'
+export type UserRole = 'admin' | 'seller' | 'buyer'
 
 export interface User {
   id: string
@@ -24,6 +24,7 @@ export interface Product {
   quantity_in_base_unit: string // Using string to preserve precision
   base_price_inr: string
   available_units: string[]
+  seller_id?: string | null
   created_at: Date
   updated_at: Date
 }
@@ -32,6 +33,7 @@ export interface Order {
   id: string
   order_number: string
   seller_id: string
+  buyer_id?: string
   status: 'quotation' | 'confirmed' | 'rejected' | 'completed'
   total_price_inr: string
   notes?: string

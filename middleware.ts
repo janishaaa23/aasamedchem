@@ -1,9 +1,7 @@
-import { auth } from '@/lib/auth'
+import { getToken } from 'next-auth/jwt'
 import { NextRequest, NextResponse } from 'next/server'
 
 const publicRoutes = ['/', '/login']
-const adminRoutes = ['/admin']
-const sellerRoutes = ['/seller']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -13,26 +11,37 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Get session
-  const session = await auth()
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
 
-  // If no session and trying to access protected route, redirect to login
-  if (!session) {
-    if (pathname.startsWith('/admin') || pathname.startsWith('/seller') || pathname === '/dashboard') {
+  // Redirect unauthenticated users to login when accessing protected routes
+  if (!token) {
+    if (
+      pathname.startsWith('/admin') ||
+      pathname.startsWith('/seller') ||
+      pathname.startsWith('/buyer') ||
+      pathname === '/dashboard'
+    ) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
   }
 
-  // If session exists, check role-based access
-  if (session) {
-    // Admin trying to access seller route
-    if (session.user.role === 'admin' && pathname.startsWith('/seller')) {
-      return NextResponse.redirect(new URL('/admin', request.url))
+  if (token) {
+    if (token.role === 'admin') {
+      if (pathname.startsWith('/seller') || pathname.startsWith('/buyer')) {
+        return NextResponse.redirect(new URL('/admin', request.url))
+      }
     }
 
-    // Seller trying to access admin route
-    if (session.user.role === 'seller' && pathname.startsWith('/admin')) {
-      return NextResponse.redirect(new URL('/seller', request.url))
+    if (token.role === 'seller') {
+      if (pathname.startsWith('/admin') || pathname.startsWith('/buyer')) {
+        return NextResponse.redirect(new URL('/seller', request.url))
+      }
+    }
+
+    if (token.role === 'buyer') {
+      if (pathname.startsWith('/admin') || pathname.startsWith('/seller') || pathname === '/dashboard') {
+        return NextResponse.redirect(new URL('/buyer', request.url))
+      }
     }
   }
 
