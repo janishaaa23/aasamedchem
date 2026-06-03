@@ -194,11 +194,7 @@ console.log("totalPrice =", totalPrice.toString())
         const product = await client`SELECT * FROM products WHERE id = ${item.product_id}`
         const prod = product[0]
 
-        const quantityInBase = convertToBaseUnit(
-          item.quantity_requested,
-          item.unit_chosen,
-          prod.unit_dimension
-        )
+        
 
         const pricePerUnit = new Decimal(prod.base_price_inr).times(
           new Decimal(
