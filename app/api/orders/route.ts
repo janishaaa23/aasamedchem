@@ -1,6 +1,6 @@
 import { auth } from '@/lib/auth'
 import { getClient } from '@/lib/db/client'
-import { Order, OrderWithItems, CreateOrderRequest, ApiResponse } from '@/lib/types'
+import { OrderWithItems, CreateOrderRequest, ApiResponse } from '@/lib/types'
 import { calculatePrice, convertToBaseUnit } from '@/lib/utils/units'
 import { NextRequest, NextResponse } from 'next/server'
 import Decimal from 'decimal.js'
