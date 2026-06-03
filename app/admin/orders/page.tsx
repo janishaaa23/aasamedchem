@@ -57,11 +57,26 @@ export default function AdminOrdersPage() {
 
   async function updateOrderStatus(orderId: string, newStatus: string) {
     try {
-      // API endpoint for updating order status (to be implemented)
-      // For now, show message
-      alert(`Order status update to "${newStatus}" would be processed here`)
+      const response = await fetch(`/api/orders/${orderId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        // Update the order in state
+        setOrders(orders.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)))
+        if (selectedOrder?.id === orderId) {
+          setSelectedOrder({ ...selectedOrder, status: newStatus })
+        }
+        alert(`Order status updated to: ${newStatus}`)
+      } else {
+        alert(`Error: ${data.error}`)
+      }
     } catch (err) {
       console.error('Error updating order:', err)
+      alert('Failed to update order status')
     }
   }
 
