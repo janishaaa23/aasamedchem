@@ -12,6 +12,7 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
+    "baseUrl": ".",
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
