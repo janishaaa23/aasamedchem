@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Decimal from 'decimal.js'
 
 // GET /api/orders - List orders based on user role
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await auth()
 
