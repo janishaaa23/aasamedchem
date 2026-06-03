@@ -1,15 +1,29 @@
 'use client'
 
-import { signIn } from 'next-auth/react'
+import { signIn, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { FormEvent, useState } from 'react'
+import { FormEvent, useEffect, useState } from 'react'
+
+function getDashboardUrl(role?: string) {
+  if (role === 'admin') return '/admin'
+  if (role === 'seller') return '/seller'
+  if (role === 'buyer') return '/buyer'
+  return '/dashboard'
+}
 
 export default function LoginPage() {
   const router = useRouter()
+  const { data: session, status } = useSession()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      router.replace(getDashboardUrl(session.user.role))
+    }
+  }, [router, session, status])
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -26,7 +40,8 @@ export default function LoginPage() {
       if (result?.error) {
         setError('Invalid email or password')
       } else if (result?.ok) {
-        router.push('/dashboard')
+        router.refresh()
+        router.replace('/dashboard')
       }
     } catch (err) {
       setError('An error occurred. Please try again.')
